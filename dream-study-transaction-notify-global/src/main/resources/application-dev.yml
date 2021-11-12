@@ -1,0 +1,17 @@
+spring: 
+  datasource: 
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/bank1_pay?useUnicode=true
+    username: root
+    password: mysql
+    
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: producer_notifymsg_pay
+
+logging: 
+  level:
+    root: info
+    '[org.springframework.web]': info
+    '[com.wy]': debug

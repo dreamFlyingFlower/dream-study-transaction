@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: dream-study-transaction-seata-branch
+  profiles:
+    active: dev
+  main:
+    allow-bean-definition-overriding: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+server: 
+  port: 55582
+  servlet:
+    context-path: /bank2
+  max-http-header-size: 10000000
+
+eureka:
+  instance:
+    hostname: localhost
+    # 每隔2s向注册中心发送心跳包,张明自己还没有宕机
+    lease-expiration-duration-in-seconds: 2
+    # 当多长时间没有收到心跳包的信息时,从注册中心中剔除本服务
+    lease-renewal-interval-in-seconds: 10
+    # 通知注册中心,本服务实例以IP作为链接,而不是取机器名
+    prefer-ip-address: true
+    # 本服务实例的唯一ID
+    instance-id: dream-study-microservice-sleuth
+  client: 
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:55550/eureka/
+      
+management: 
+  endpoints:
+    web:
+      exposure:
+        include:
+        - "*"
+        
+feign:
+  hystrix:
+    enabled: true
+  compression:
+    request:
+      # 配置请求GZIP压缩
+      enabled: true
+      # 配置压缩支持的MIME TYPE
+      mime-types: ["text/xml","application/xml","application/json"]
+      # 配置压缩数据大小的下限
+      min-request-size: 2048
+    response:
+      # 配置响应GZIP压缩
+      enabled: true
+
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            # 设置熔断超时时间,默认1000
+            timeoutInMilliseconds: 1000  
+        timeout:
+          # 打开超时熔断功能,默认true
+          enabled: true
+
+ribbon:
+  ConnectTimeout: 600 # 设置连接超时时间 default 2000
+  ReadTimeout: 6000    # 设置读取超时时间  default 5000
+  OkToRetryOnAllOperations: true # 对所有操作请求都进行重试  default false
+  MaxAutoRetriesNextServer: 2    # 切换实例的重试次数  default 1
+  MaxAutoRetries: 1     # 对当前实例的重试次数 default 0          

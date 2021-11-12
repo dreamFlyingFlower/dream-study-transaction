@@ -1,0 +1,66 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>dream.flying.flower</groupId>
+	<artifactId>dream-study-transaction</artifactId>
+	<version>0.0.1</version>
+	<packaging>pom</packaging>
+	<name>dream-study-transactio</name>
+	<description>study for distributed transaction</description>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.4.2</version>
+		<relativePath />	<!-- lookup parent from repository -->
+	</parent>
+
+	<properties>
+		<java.version>1.8</java.version>
+		<alibaba.cloud.version>2021.1</alibaba.cloud.version>
+		<spring.cloud-version>Hoxton.SR11</spring.cloud-version>
+		<!-- 若要升级到2020.0.x,Netflix的很多Jar被移除或替换 -->
+		<!-- hystrix被移除,替换为resilience4j;zuul被移除,替换为gateway;ribbon被移除,替换为loadbalancer -->
+		<!-- turbine被移除,暂无替代 -->
+		<!-- <spring.cloud-version>2020.0.1</spring.cloud-version> -->
+	</properties>
+	
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.alibaba.cloud</groupId>
+				<artifactId>spring-cloud-alibaba-dependencies</artifactId>
+				<version>${alibaba.cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring.cloud-version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<modules>
+		<module>dream-study-transaction-notify-branch</module>
+		<module>dream-study-transaction-notify-global</module>
+		<module>dream-study-transaction-rocketmq-consumer</module>
+		<module>dream-study-transaction-rocketmq-producer</module>
+		<module>dream-study-transaction-seata-branch</module>
+		<module>dream-study-transaction-seata-global</module>
+		<module>dream-study-transaction-single</module>
+		<module>dream-study-transaction-tcc-branch</module>
+		<module>dream-study-transaction-tcc-global</module>
+	</modules>
+</project>
