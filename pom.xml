@@ -59,6 +59,7 @@
 		<module>dream-study-transaction-rocketmq-producer</module>
 		<module>dream-study-transaction-seata-branch</module>
 		<module>dream-study-transaction-seata-global</module>
+		<module>dream-study-transaction-server</module>
 		<module>dream-study-transaction-single</module>
 		<module>dream-study-transaction-tcc-branch</module>
 		<module>dream-study-transaction-tcc-global</module>

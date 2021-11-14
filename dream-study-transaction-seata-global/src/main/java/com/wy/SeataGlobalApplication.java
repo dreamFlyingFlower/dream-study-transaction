@@ -7,7 +7,7 @@ import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
- * 分布式事务
+ * 分布式事务Seata,有XA,TCC模式,但是TCC没有和SpringCloud整合,此处只使用XA模式进行演示
  * 
  * SpringCloud Alibaba Seata:需要下载对应的程序,并且配置一系列配置,如数据库配置,注册中心等
  * 

@@ -1,0 +1,147 @@
+hmily:
+  server:
+    # 配置模式,默认为local,读取本地yml配置.支持local,zookeeper,nacos,apollo,其他模式读取配置中心配置
+    configMode: local
+    # 应用的名称,如果hmilyConfig中也配置了appName则会覆盖此配置
+    appName: dream-study-transaction-tcc-global
+  # 如果server.configMode为local时才会读取下面的信息
+  config:
+    # 微服务的应用名称
+    appName: dream-study-transaction-tcc-global
+    # 指定事务日志的序列化方式,默认kryo.支持kryo,hessian,jdk,protostuff
+    serializer: kryo
+    # 事务上下文传递的模式,默认threadLocal.支持 threadLocal, transmittable (跨线程模式)
+    contextTransmittalMode: threadLocal
+    # 调度线程数最大线程数量,默认CPU * 2
+    scheduledThreadMax: 16
+    # 事务日志自动恢复调度周期,单位秒,默认60
+    scheduledRecoveryDelay: 60
+    # 事务日志清理调度周期,单位秒,默认60
+    scheduledCleanDelay: 60
+    # 事务日志物理删除调度周期,单位秒,默认60
+    scheduledPhyDeletedDelay: 600
+    # 调度任务启动延迟时间,单位秒,默认30
+    scheduledInitDelay: 30
+    # 事务日志恢复迟延时间,单位秒,默认60
+    recoverDelayTime: 60
+    # 事务日志清理迟延时间,单位秒,默认60
+    cleanDelayTime: 180
+    # 获取事务日志行数大小,默认100
+    limit: 200
+    # 最大重试次数,默认10
+    retryMax: 10
+    # disruptor的bufferSize大小,单位字节,默认4096 * 2 * 2
+    bufferSize: 8192
+    # disruptor消费者线程数量,默认CPU * 2
+    consumerThreads: 16
+    # 是否异步存储事务日志,设置为false则为同步,默认true
+    asyncRepository: true
+    # 是否自动执行框架自动建库建表SQL语句,如果已经创建可以设置为false,,默认true
+    autoSql: true
+    # 在运行过程中,是否物理删除日志.设置为false,则只会更改日志状态,默认true
+    phyDeleted: true
+    # 如果 phyDeleted 设置为false的时候,日志存储天数,单位天,默认3天
+    storeDays: 3
+    # 指定事务日志的存储方式,支持mysql, oracle, postgresql, sqlserver, mongo, redis, file,默认mysql
+    repository: mysql
+
+# Hmily存储事务日志的配置,支持:database(mysql,oracle,postgresql,sqlserver),file(本地模式),mongodb,zookeeper,redis
+repository:
+  database:
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/bank1?useUnicode=true
+    username: root
+    password: 52LDforever
+    # 连接池连接最大活跃数
+    maxActive: 20
+    # 连接池最小空闲数
+    minIdle: 10
+    # 数据库的连接超时时间
+    connectionTimeout: 30000
+    # 一个连接idle状态的最大时长,单位毫秒,超时则被释放(retired),默认10分钟
+    idleTimeout: 600000
+    # 一个连接的生命时长,单位毫秒,超时且没被使用则被释放(retired),默认30分钟,建议设置比数据库超时时长少30秒
+    maxLifetime: 1800000
+  # file配置
+  file:
+    # 文件存储路径
+    path:
+    # 文件存储前缀
+    prefix: /hmily
+  # mongo配置
+  mongo:
+    # 数据库名称
+    databaseName:
+    # 数据库的url连接
+    url:
+    # 数据库的用户名
+    userName:
+    # 数据库的密码
+    password:
+  # zookeeper配置
+  zookeeper:
+    # zookeeper服务ip与端口
+    host: localhost:2181
+    # session超时时间
+    sessionTimeOut: 1000
+    # 存储根路径
+    rootPath: /hmily
+  redis:
+    # 是否是集群,默认false
+    cluster: false
+    # 是否是哨兵模式,默认false
+    sentinel: false
+    # 集群url,多个节点使用;分隔
+    clusterUrl:
+    # 哨兵url,多个节点使用;分隔
+    sentinelUrl:
+    # 主节点名称,没有设置可以不填
+    masterName:
+    # redis单机模式下的host
+    hostName:
+    # redis单机模式下的端口
+    port:
+    # redis服务密码
+    password:
+    # 最大连接数,默认为8
+    maxTotal: 8
+    # 最大空闲的连接数,默认8
+    maxIdle: 8
+    # 最少空闲的连接数,默认2
+    minIdle: 2
+    # 当资源池连接用尽后,调用者的最大等待时间(单位为毫秒).默认-1永不超时,不建议使用默认值
+    maxWaitMillis: -1
+    # 资源池中资源最小空闲时间(单位为毫秒),达到此值后空闲资源将被移除,默认值1000*60 *30 = 30分钟
+    minEvictableIdleTimeMillis: 1800000
+    # 对象空闲多久后逐出,当空闲时间>该值且空闲连接>最大空闲数时直接逐出,不再根据MinEvictableIdleTimeMillis判断(默认逐出策略)
+    softMinEvictableIdleTimeMillis: 1800000
+    # 每次逐出检查时逐出的最大数目,如果为负数就是: 1/abs(n),默认3
+    numTestsPerEvictionRun: 3
+    # 逐出扫描的时间间隔(毫秒) 如果为负数,则不运行逐出线程, 默认-1
+    timeBetweenEvictionRunsMillis: -1
+    # 超时时间,默认1000
+    timeOut: 1000
+    # 在获取连接时,是否验证有效性,默认false
+    testOnCreate: false
+    # 在borrow一个jedis实例时,是否提前进行alidate操作;如果为true,则得到的jedis实例均是可用的.默认false
+    testOnBorrow: false
+    # 在return给pool时,是否提前进行validate操作,默认false
+    testOnReturn: false
+    # 如果为true,表示有一个idle object evitor线程对idle object进行扫描,如果validate失败,此object会被从pool中drop掉;
+    # 这一项只有在timeBetweenEvictionRunsMillis大于0时才有意义.默认false
+    testWhileIdle: false
+    # 连接耗尽时是否阻塞,false报异常,true阻塞直到超时, 默认true
+    blockWhenExhausted: true
+
+# Hmily记录调用量,耗时,事务提交与失败等等信息,目前只支持 prometheus
+metrics: 
+  # 支持的类型,目前只支持prometheus
+  metricsName: prometheus
+  # 暴露的http服务的host,不填则会取localhost
+  host:
+  # 暴露的http服务的端口
+  port: 9091
+  # 是否异步模式记录,默认true
+  async: true
+  # 异步模式下线程数大小,默认CPU*2
+  threadCount : 16

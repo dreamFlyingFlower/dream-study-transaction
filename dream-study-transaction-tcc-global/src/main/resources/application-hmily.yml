@@ -1,0 +1,7 @@
+config: 
+  hmily:
+    hmily-db-config:
+      driverClassName  : com.mysql.jdbc.Driver
+      url :  jdbc:mysql://localhost:3306/hmily?useUnicode=true
+      username : root
+      password : 52LDforever

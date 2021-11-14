@@ -1,6 +1,6 @@
 spring: 
   datasource: 
-    ds0:
+    ds1: 
       url: jdbc:mysql://localhost:3306/bank2?useUnicode=true
       username: root
       password: mysql

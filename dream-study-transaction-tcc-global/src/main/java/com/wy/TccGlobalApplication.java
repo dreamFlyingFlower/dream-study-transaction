@@ -5,11 +5,18 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
- * 分布式事务
+ * 分布式事务TCC模型,可以使用tcc-transaction,hmily等,tcc-transaction需要搭建额外的服务,此处使用hmily进行演示
  * 
- * SpringCloud Alibaba Seata:需要下载对应的程序,并且配置一系列配置,如数据库配置,注册中心等
+ * Hmily使用
+ * 
+ * <pre>
+ * 1.需要手动创建hmily数据库,用来存储hmily的事务数据
+ * 		CREATE DATABASE `hmily` CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_0900_ai_ci';
+ * 2.创建bank1,bank2数据库,见父工程中的SQL
+ * </pre>
  * 
  * @author 飞花梦影
  * @date 2020-12-03 17:19:13
@@ -17,8 +24,9 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  */
 @EnableEurekaClient
 @EnableHystrix
+@EnableAspectJAutoProxy
 @EnableFeignClients(basePackages = { "com.wy.feign" })
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = { "com.wy", "org.dromara.hmily" })
 public class TccGlobalApplication {
 
 	public static void main(String[] args) {

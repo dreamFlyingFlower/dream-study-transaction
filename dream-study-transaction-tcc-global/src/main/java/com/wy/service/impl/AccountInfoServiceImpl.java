@@ -12,12 +12,19 @@ import com.wy.service.AccountInfoService;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * {@link Hmily}:只要标记@Hmily就是try方法,在注解中指定confirm,cancel两个方法的名字
+ * 
+ * @author 飞花梦影
+ * @date 2021-11-13 15:20:54
+ * @git {@link https://github.com/dreamFlyingFlower}
+ */
 @Service
 @Slf4j
 public class AccountInfoServiceImpl implements AccountInfoService {
 
 	@Autowired
-	AccountInfoMapper accountInfoDao;
+	AccountInfoMapper accountInfoMapper;
 
 	@Autowired
 	Bank2Client bank2Client;
@@ -31,31 +38,30 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 	 */
 	@Override
 	@Transactional
-	// 只要标记@Hmily就是try方法,在注解中指定confirm、cancel两个方法的名字
 	@Hmily(confirmMethod = "commit", cancelMethod = "rollback")
 	public void updateAccountBalance(String accountNo, Double amount) {
 		// 获取全局事务id
 		String transId = HmilyTransactionContextLocal.getInstance().get().getTransId();
 		log.info("bank1 try begin 开始执行...xid:{}", transId);
 		// 幂等判断 判断local_try_log表中是否有try日志记录,如果有则不再执行
-		if (accountInfoDao.isExistTry(transId) > 0) {
+		if (accountInfoMapper.isExistTry(transId) > 0) {
 			log.info("bank1 try 已经执行,无需重复执行,xid:{}", transId);
 			return;
 		}
 
 		// try悬挂处理,如果cancel、confirm有一个已经执行了,try不再执行
-		if (accountInfoDao.isExistConfirm(transId) > 0 || accountInfoDao.isExistCancel(transId) > 0) {
+		if (accountInfoMapper.isExistConfirm(transId) > 0 || accountInfoMapper.isExistCancel(transId) > 0) {
 			log.info("bank1 try悬挂处理  cancel或confirm已经执行,不允许执行try,xid:{}", transId);
 			return;
 		}
 
 		// 扣减金额
-		if (accountInfoDao.subtractAccountBalance(accountNo, amount) <= 0) {
+		if (accountInfoMapper.subtractAccountBalance(accountNo, amount) <= 0) {
 			// 扣减失败
 			throw new RuntimeException("bank1 try 扣减金额失败,xid:{}" + transId);
 		}
 		// 插入try执行记录,用于幂等判断
-		accountInfoDao.addTry(transId);
+		accountInfoMapper.addTry(transId);
 
 		// 远程调用李四,转账
 		if (!bank2Client.transfer(amount)) {
@@ -67,7 +73,12 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 		log.info("bank1 try end 结束执行...xid:{}", transId);
 	}
 
-	// confirm方法
+	/**
+	 * Hmily的Confirm方法
+	 * 
+	 * @param accountNo
+	 * @param amount
+	 */
 	@Transactional
 	public void commit(String accountNo, Double amount) {
 		// 获取全局事务id
@@ -76,7 +87,7 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 	}
 
 	/**
-	 * cancel方法 cancel幂等校验 cancel空回滚处理 增加可用余额
+	 * Hmily的Cancel方法.cancel幂等校验,cancel空回滚处理,增加可用余额
 	 * 
 	 * @param accountNo
 	 * @param amount
@@ -87,19 +98,19 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 		String transId = HmilyTransactionContextLocal.getInstance().get().getTransId();
 		log.info("bank1 cancel begin 开始执行...xid:{}", transId);
 		// cancel幂等校验
-		if (accountInfoDao.isExistCancel(transId) > 0) {
+		if (accountInfoMapper.isExistCancel(transId) > 0) {
 			log.info("bank1 cancel 已经执行,无需重复执行,xid:{}", transId);
 			return;
 		}
 		// cancel空回滚处理,如果try没有执行,cancel不允许执行
-		if (accountInfoDao.isExistTry(transId) <= 0) {
+		if (accountInfoMapper.isExistTry(transId) <= 0) {
 			log.info("bank1 空回滚处理,try没有执行,不允许cancel执行,xid:{}", transId);
 			return;
 		}
 		// 增加可用余额
-		accountInfoDao.addAccountBalance(accountNo, amount);
+		accountInfoMapper.addAccountBalance(accountNo, amount);
 		// 插入一条cancel的执行记录
-		accountInfoDao.addCancel(transId);
+		accountInfoMapper.addCancel(transId);
 		log.info("bank1 cancel end 结束执行...xid:{}", transId);
 	}
 }

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface Bank2Client {
 
 	// 远程调用李四的微服务
-	@GetMapping("/bank2/transfer")
+	@GetMapping("/tcc-branch/transfer")
 	@Hmily
 	Boolean transfer(@RequestParam("amount") Double amount);
 }

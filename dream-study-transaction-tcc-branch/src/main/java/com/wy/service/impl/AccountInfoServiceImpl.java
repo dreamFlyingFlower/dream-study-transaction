@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AccountInfoServiceImpl implements AccountInfoService {
 
 	@Autowired
-	AccountInfoMapper accountInfoDao;
+	AccountInfoMapper accountInfoMapper;
 
 	@Override
 	@Hmily(confirmMethod = "confirmMethod", cancelMethod = "cancelMethod")
@@ -37,14 +37,14 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 		// 获取全局事务id
 		String transId = HmilyTransactionContextLocal.getInstance().get().getTransId();
 		log.info("bank2 confirm begin 开始执行...xid:{}", transId);
-		if (accountInfoDao.isExistConfirm(transId) > 0) {
+		if (accountInfoMapper.isExistConfirm(transId) > 0) {
 			log.info("bank2 confirm 已经执行，无需重复执行...xid:{}", transId);
 			return;
 		}
 		// 增加金额
-		accountInfoDao.addAccountBalance(accountNo, amount);
+		accountInfoMapper.addAccountBalance(accountNo, amount);
 		// 增加一条confirm日志,用于幂等
-		accountInfoDao.addConfirm(transId);
+		accountInfoMapper.addConfirm(transId);
 		log.info("bank2 confirm end 结束执行...xid:{}", transId);
 	}
 

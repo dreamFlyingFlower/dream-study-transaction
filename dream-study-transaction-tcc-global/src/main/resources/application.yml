@@ -1,8 +1,8 @@
 spring:
   application:
-    name: dream-study-transaction-seata-global
+    name: dream-study-transaction-tcc-global
   profiles:
-    active: dev
+    active: dev,hmily
   main:
     allow-bean-definition-overriding: true
   jackson:
@@ -11,6 +11,8 @@ spring:
 server: 
   port: 55581
   max-http-header-size: 10000000
+  servlet:
+    context-path: /tcc-global
 
 eureka:
   instance:
@@ -22,7 +24,7 @@ eureka:
     # 通知注册中心,本服务实例以IP作为链接,而不是取机器名
     prefer-ip-address: true
     # 本服务实例的唯一ID
-    instance-id: dream-study-microservice-sleuth
+    instance-id: dream-study-transaction-tcc-global
   client: 
     service-url:
       defaultZone: http://${eureka.instance.hostname}:55550/eureka/
@@ -55,13 +57,20 @@ hystrix:
       execution:
         isolation:
           thread:
-            timeoutInMilliseconds: 1000  # 设置熔断超时时间  default 1000
+            # 设置熔断超时时间,默认1000毫秒
+            timeoutInMilliseconds: 1000
         timeout:
-          enabled: true # 打开超时熔断功能 default true
+          # 打开超时熔断功能,默认true
+          enabled: true
 
 ribbon:
-  ConnectTimeout: 600 # 设置连接超时时间 default 2000
-  ReadTimeout: 6000    # 设置读取超时时间  default 5000
-  OkToRetryOnAllOperations: true # 对所有操作请求都进行重试  default false
-  MaxAutoRetriesNextServer: 2    # 切换实例的重试次数  default 1
-  MaxAutoRetries: 1     # 对当前实例的重试次数 default 0
+  # 设置连接超时时间,默认2000毫秒
+  ConnectTimeout: 600
+  # 设置读取超时时间,默认5000好眠
+  ReadTimeout: 6000
+  # 对所有操作请求都进行重试,默认false
+  OkToRetryOnAllOperations: true
+  # 切换实例的重试次数,默认1
+  MaxAutoRetriesNextServer: 2
+  # 对当前实例的重试次数,默认0
+  MaxAutoRetries: 1

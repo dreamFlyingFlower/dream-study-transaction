@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.cloud.netflix.hystrix.EnableHystrix;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
  * 分布式事务
@@ -16,7 +17,8 @@ import org.springframework.cloud.netflix.hystrix.EnableHystrix;
  */
 @EnableEurekaClient
 @EnableHystrix
-@SpringBootApplication
+@EnableAspectJAutoProxy
+@SpringBootApplication(scanBasePackages = { "com.wy", "org.dromara.hmily" })
 public class TccBranchApplication {
 
 	public static void main(String[] args) {
