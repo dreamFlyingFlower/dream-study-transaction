@@ -6,8 +6,6 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
-import io.seata.spring.boot.autoconfigure.SeataAutoConfiguration;
-
 /**
  * 分布式事务
  * 
@@ -20,7 +18,7 @@ import io.seata.spring.boot.autoconfigure.SeataAutoConfiguration;
 @EnableEurekaClient
 @EnableHystrix
 @EnableAspectJAutoProxy
-@SpringBootApplication(scanBasePackages = { "com.wy", "org.dromara.hmily" }, exclude = SeataAutoConfiguration.class)
+@SpringBootApplication(scanBasePackages = { "com.wy", "org.dromara.hmily" })
 public class TccBranchApplication {
 
 	public static void main(String[] args) {

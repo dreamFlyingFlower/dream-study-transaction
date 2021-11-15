@@ -1,14 +1,14 @@
 spring: 
   datasource: 
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/bank1?useUnicode=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/bank1_pay?autoReconnect=true&useUnicode=true&useSSL=false&characterEncoding=UTF8&serverTimezone=GMT
     username: root
-    password: mysql
-    
-rocketmq:
+    password: 52LDforever
+      
+rocketmq: 
   name-server: 127.0.0.1:9876
   producer:
-    group: producer_notifymsg_bank1
+    group: producer_notifymsg_pay
 
 logging: 
   level:

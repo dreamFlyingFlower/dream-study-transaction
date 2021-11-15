@@ -13,10 +13,10 @@ import com.wy.model.AccountPay;
  * @date 2021-11-12 14:21:55
  * @git {@link https://github.com/dreamFlyingFlower }
  */
-@FeignClient(value = "dtx-notifymsg-demo-pay", fallback = PayFallback.class)
+@FeignClient(value = "dream-study-transaction-notify-branch", fallback = PayFallback.class)
 public interface PayClient {
 
 	// 远程调用充值系统的接口查询充值结果
-	@GetMapping(value = "/pay/payresult/{txNo}")
+	@GetMapping(value = "/notify-branch/payresult/{txNo}")
 	AccountPay payresult(@PathVariable("txNo") String txNo);
 }

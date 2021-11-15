@@ -29,12 +29,11 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 	@Autowired
 	Bank2Client bank2Client;
 
-	// 账户扣款,就是tcc的try方法
 	/**
-	 * try幂等校验 try悬挂处理 检查余额是够扣减金额 扣减金额
+	 * 账户扣款,就是tcc的try方法.try需要幂等校验,悬挂处理,检查余额是够扣减金额 扣减金额
 	 * 
-	 * @param accountNo
-	 * @param amount
+	 * @param accountNo 账号
+	 * @param amount 金额
 	 */
 	@Override
 	@Transactional
@@ -43,7 +42,7 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 		// 获取全局事务id
 		String transId = HmilyTransactionContextLocal.getInstance().get().getTransId();
 		log.info("bank1 try begin 开始执行...xid:{}", transId);
-		// 幂等判断 判断local_try_log表中是否有try日志记录,如果有则不再执行
+		// 幂等判断,判断local_try_log表中是否有try日志记录,如果有则不再执行
 		if (accountInfoMapper.isExistTry(transId) > 0) {
 			log.info("bank1 try 已经执行,无需重复执行,xid:{}", transId);
 			return;

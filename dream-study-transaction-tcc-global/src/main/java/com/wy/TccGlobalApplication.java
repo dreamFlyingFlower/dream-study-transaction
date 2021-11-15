@@ -7,8 +7,6 @@ import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
-import io.seata.spring.boot.autoconfigure.SeataAutoConfiguration;
-
 /**
  * 分布式事务TCC模型,可以使用tcc-transaction,hmily等,tcc-transaction需要搭建额外的服务,此处使用hmily进行演示
  * 
@@ -28,7 +26,7 @@ import io.seata.spring.boot.autoconfigure.SeataAutoConfiguration;
 @EnableHystrix
 @EnableAspectJAutoProxy
 @EnableFeignClients(basePackages = { "com.wy.feign" })
-@SpringBootApplication(scanBasePackages = { "com.wy", "org.dromara.hmily" },exclude = SeataAutoConfiguration.class)
+@SpringBootApplication(scanBasePackages = { "com.wy", "org.dromara.hmily" })
 public class TccGlobalApplication {
 
 	public static void main(String[] args) {

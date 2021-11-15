@@ -4,19 +4,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.cloud.netflix.hystrix.EnableHystrix;
-import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
- * 分布式事务
- * 
- * SpringCloud Alibaba Seata:需要下载对应的程序,并且配置一系列配置,如数据库配置,注册中心等
+ * 分布式事务:最大努力通知,需要使用中间件,内部系统分支事务或第三方系统事务
  * 
  * @author 飞花梦影
  * @date 2020-12-03 17:19:13
  * @git {@link https://github.com/dreamFlyingFlower}
  */
 @EnableEurekaClient
-@EnableFeignClients(basePackages = { "com.wy.feign" })
 @EnableHystrix
 @SpringBootApplication
 public class NotifyBranchApplication {

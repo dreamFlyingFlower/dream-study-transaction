@@ -18,6 +18,9 @@ public class AccountInfoServiceImpl implements AccountInfoService {
 	@Autowired
 	AccountInfoMapper accountInfoMapper;
 
+	/**
+	 * 当前微服务方法为被调用方,不能主动发起跨服务事务,否则会抛异常,只能被其他微服务调用
+	 */
 	@Override
 	@Hmily(confirmMethod = "confirmMethod", cancelMethod = "cancelMethod")
 	public void updateAccountBalance(String accountNo, Double amount) {
