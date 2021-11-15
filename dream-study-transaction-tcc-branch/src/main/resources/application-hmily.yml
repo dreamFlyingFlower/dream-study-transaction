@@ -1,8 +1,8 @@
-config:
+global:
   hmily:
     started: false
     hmily-db-config:
-      driverClassName: com.mysql.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/hmily?useUnicode=true
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/hmily?autoReconnect=true&useUnicode=true&useSSL=false&characterEncoding=UTF8&serverTimezone=GMT
       username: root
       password: 52LDforever

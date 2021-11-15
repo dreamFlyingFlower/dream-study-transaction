@@ -1,7 +1,7 @@
 spring: 
   datasource: 
     ds0:
-      url: jdbc:mysql://localhost:3306/bank1?useUnicode=true
+      url: jdbc:mysql://localhost:3306/bank1?autoReconnect=true&useUnicode=true&useSSL=false&characterEncoding=UTF8&serverTimezone=GMT
       username: root
       password: 52LDforever
       type: com.alibaba.druid.pool.DruidDataSource
@@ -17,8 +17,12 @@ spring:
       testOnBorrow: false
       testOnReturn: false
       poolPreparedStatements: true
-      connection-properties: druid.stat.mergeSql:true;druid.stat.slowSqlMillis:5000
-    
+      connection-properties: 
+        druid.stat.mergeSql:true;druid.stat.slowSqlMillis:5000
+ 
+  devtools:
+    restart:
+      enabled: true
 logging: 
   level:
     root: info

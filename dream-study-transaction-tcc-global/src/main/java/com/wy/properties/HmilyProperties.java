@@ -20,6 +20,11 @@ import lombok.Setter;
 public class HmilyProperties {
 
 	/**
+	 * 仓库后缀,前缀是hmily,后缀默认是服务名,不可重复
+	 */
+	private String repositorySuffix = "tcc-global";
+
+	/**
 	 * 指定事务日志的序列化方式. {@linkplain SerializeEnum}
 	 */
 	private String serializer = "kryo";

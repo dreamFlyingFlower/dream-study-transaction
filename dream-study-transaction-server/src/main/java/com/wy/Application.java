@@ -90,9 +90,9 @@ import org.springframework.context.support.DefaultLifecycleProcessor;
  * 
  * @apiNote 实现分布式事务,可以使用zk的临时节点
  * 
- * @author ParadiseWY
+ * @author 飞花梦影
  * @date 2020-12-03 17:19:13
- * @git {@link https://github.com/mygodness100}
+ * @git {@link https://github.com/dreamFlyingFlower}
  */
 @EnableEurekaServer
 @SpringBootApplication

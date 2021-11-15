@@ -9,14 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.wy.properties.ConfigProperties;
+import com.wy.properties.GlobalProperties;
 
 @Configuration
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 public class DatabaseConfig {
 
 	@Autowired
-	private ConfigProperties config;
+	private GlobalProperties config;
 
 	@Bean
 	@ConfigurationProperties(prefix = "spring.datasource.ds0")
@@ -27,6 +27,7 @@ public class DatabaseConfig {
 	@Bean
 	public HmilyTransactionBootstrap hmilyTransactionBootstrap(HmilyInitService hmilyInitService) {
 		HmilyTransactionBootstrap hmilyTransactionBootstrap = new HmilyTransactionBootstrap(hmilyInitService);
+		hmilyTransactionBootstrap.setRepositorySuffix(config.getHmily().getRepositorySuffix());
 		hmilyTransactionBootstrap.setSerializer(config.getHmily().getSerializer());
 		hmilyTransactionBootstrap.setRecoverDelayTime(config.getHmily().getRecoverDelayTime());
 		hmilyTransactionBootstrap.setRetryMax(config.getHmily().getRetryMax());

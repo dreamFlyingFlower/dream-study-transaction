@@ -14,10 +14,10 @@ import lombok.Setter;
  * @git {@link https://github.com/dreamFlyingFlower}
  */
 @Configuration
-@ConfigurationProperties(prefix = "config")
+@ConfigurationProperties(prefix = "global")
 @Getter
 @Setter
-public class ConfigProperties {
+public class GlobalProperties {
 
 	private HmilyProperties hmily = new HmilyProperties();
 }
