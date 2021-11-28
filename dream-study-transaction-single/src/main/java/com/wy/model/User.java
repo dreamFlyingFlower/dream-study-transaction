@@ -11,17 +11,13 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AccountInfo implements Serializable {
+public class User implements Serializable {
 
 	private static final long serialVersionUID = 8691617672742005130L;
 
-	private Long id;
+	private Long userId;
 
-	private String accountName;
+	private String username;
 
-	private String accountNo;
-
-	private String accountPassword;
-
-	private Double accountBalance;
+	private Double salary;
 }

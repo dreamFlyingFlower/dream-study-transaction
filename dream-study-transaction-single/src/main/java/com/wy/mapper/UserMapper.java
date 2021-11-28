@@ -7,17 +7,17 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Component;
 
-import com.wy.model.AccountInfo;
+import com.wy.model.User;
 
 @Mapper
 @Component
-public interface AccountInfoMapper {
+public interface UserMapper {
 
 	@Update("update account_info set account_balance=account_balance+#{amount} where account_no=#{accountNo}")
 	int updateAccountBalance(@Param("accountNo") String accountNo, @Param("amount") Double amount);
 
 	@Select("select * from account_info where where account_no=#{accountNo}")
-	AccountInfo findByIdAccountNo(@Param("accountNo") String accountNo);
+	User findByIdAccountNo(@Param("accountNo") String accountNo);
 
 	@Select("select count(1) from de_duplication where tx_no = #{txNo}")
 	int isExistTx(String txNo);
