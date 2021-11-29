@@ -17,14 +17,12 @@ public class DatabaseConfig {
 	@Bean
 	@ConfigurationProperties(prefix = "spring.datasource.ds0")
 	public DruidDataSource ds0() {
-		DruidDataSource druidDataSource = new DruidDataSource();
-		return druidDataSource;
+		return new DruidDataSource();
 	}
 
 	@Primary
 	@Bean
 	public DataSource dataSource(DruidDataSource ds0) {
-		DataSourceProxy pds0 = new DataSourceProxy(ds0);
-		return pds0;
+		return new DataSourceProxy(ds0);
 	}
 }
