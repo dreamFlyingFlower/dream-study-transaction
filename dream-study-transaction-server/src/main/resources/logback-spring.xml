@@ -174,24 +174,9 @@
 	</root>
 
 	<!-- 不同环境配置不同的日志级别 -->
-	<!-- 开发环境日志级别 -->
-	<springProfile name="dev">
+	<!-- 开发,测试环境日志级别 -->
+	<springProfile name="dev,test">
 		<!-- 基本策略:默认日志级别 -->
-		<root level="INFO">
-			<appender-ref ref="CONSOLE" />
-			<appender-ref ref="DEBUG_FILE" />
-			<appender-ref ref="INFO_FILE" />
-			<appender-ref ref="WARN_FILE" />
-			<appender-ref ref="ERROR_FILE" />
-		</root>
-		<!-- 定制化日志级别 -->
-		<logger name="com.wy" level="DEBUG" />
-		<logger name="mapper" level="DEBUG" />
-		<logger name="org.springframework" level="INFO" />
-	</springProfile>
-
-	<!-- 测试环境日志级别 -->
-	<springProfile name="test">
 		<root level="DEBUG">
 			<appender-ref ref="CONSOLE" />
 			<appender-ref ref="DEBUG_FILE" />
@@ -199,6 +184,7 @@
 			<appender-ref ref="WARN_FILE" />
 			<appender-ref ref="ERROR_FILE" />
 		</root>
+		<!-- 定制化日志级别 -->
 		<logger name="com.wy" level="DEBUG" />
 		<logger name="mapper" level="DEBUG" />
 		<logger name="org.springframework" level="INFO" />
