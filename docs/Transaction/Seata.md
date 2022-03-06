@@ -19,33 +19,100 @@
 
 
 
-* 每一个微服务必须创建undo.log,安装事务协调器:seate-server
+* 安装事务协调器:seate-server
 
- * 导入依赖,解压并启动seata-server
+ * 下载解压并修改相关配置文件
 
  * registry.conf:注册中心配置
 
    ```json
+   # 接入注册中心
    registry {
    	type = "nacos"
+       # 负载均衡采用随机策略
+       loadBalance = "RandomLoadBalance"
+   	loadBalanceVirtualNodes = 10
        nacos {
-           serverAddr = "localhost"
+           serverAddr = "localhost:8848"
+       	# 分配应用组,命令空间
+   		group="SEATA_GROUP"
            namespace = "public"
+       	# 集群名称,采用默认值default即可
            cluster = "default"
+       	# nacos接口用户名密码
+   		username = "nacos"
+       	password = "nacos"
        }
    }
    
+   # 接入配置中心
    config {
        type = "nacos"
        nacos {
-           serverAddr = "localhost"
+           serverAddr = "localhost:8848"
+       	group="SEATA_GROUP"
            namespace = "public"
            cluster = "default"
+       	username = "nacos"
+       	password = "nacos"
        }
    }
    ```
 
- * 所有想要用到分布式事务的微服务使用seata的DataSourceProxyConfig代理自己的数据源
+ * 在 Nacos 配置中心中初始化 Seata 配置,由Seata官网提供,可访问相关[地址](https://github.com/seata/seata/blob/1.4.0/script/config-center/config.txt)中的config.txt进行查看
+
+ * 将config.txt复制到seata-server根目录下,同时修改`store.mode=file->store.mode=db`,修改以`store.db`开头的全局事务数据库地址为项目需要使用的数据库地址
+
+ * 下载[nacos-config.sh](https://github.com/seata/seata/blob/1.4.0/script/config-center/nacos/nacos-config.sh),存储到seata根目录下的script下,没有script就新建,运行nacos-config.sh
+
+   ```shell
+   # ip是nacos注册中心的ip
+   sh nacos-config.sh -h 192.168.1.150
+   ```
+   
+ * [建表](https://github.com/seata/seata/blob/develop/script/server/db/mysql.sql):
+
+   * global_table:保存全局事务数据
+   * branch_table:保存分支事务数据
+   * 
+      lock_table:保存锁定资源数据
+
+ * 启动:`seata-server.sh -h 127.0.0.1 -p 8091 -m db -n 1 -e test`
+
+   * -h:注册到注册中心的ip
+   * -p:Server rpc 监听端口
+   * -m:全局事务会话信息存储模式,file,db,redis,优先读取启动参数
+   * -n:Server node,多个Server时,需区分各自节点,用于生成不同区间的transactionId,以免冲突
+   * -e:多环境配置参考 http://seata.io/en-us/docs/ops/multi-configuration-isolation.html
+
+ * 每一个使用了Seata的数据库中都需要创建undo.log表,根据[官网](https://github.com/seata/seata/blob/1.4.0/script/client/at/db/mysql.sql)创建
+
+ * 微服务Client导入依赖
+
+   ```xml
+   <dependency>
+       <groupId>com.alibaba.cloud</groupId>
+       <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+   </dependency>
+   <dependency>
+       <groupId>io.seata</groupId>
+       <artifactId>seata-spring-boot-starter</artifactId>
+       <version>最新版</version>
+   </dependency>
+   <dependency>
+       <groupId>com.alibaba.cloud</groupId>
+       <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+       <version>2.2.1.RELEASE</version>
+       <exclusions>
+           <exclusion>
+               <groupId>io.seata</groupId>
+               <artifactId>seata-spring-boot-starter</artifactId>
+           </exclusion>
+       </exclusions>
+   </dependency>
+   ```
+
+ * 所有用到分布式事务的微服务使用seata的DataSourceProxyConfig代理自己的数据源
 
    ```java
    @Configuration
@@ -70,8 +137,17 @@
    spring:
    	application:
    		name: service-product
+   	datasource:
+       	driver-class-name: com.mysql.cj.jdbc.Driver
+       	url: jdbc:mysql://192.168.1.150:3306/seata-order
+       	username: root
+       	password: root
    	cloud:
    		nacos:
+   			discovery:
+           		username: nacos
+           		password: nacos
+           		server-addr: 192.168.1.150:8848
    			config:
    				server-addr: localhost:8848 # nacos的服务端地址
    				namespace: public
@@ -79,13 +155,55 @@
            alibaba:
                seata:
                    tx-service-group: ${spring.application.name}
+   # seata配置
+   seata:
+   	# 开启seata分布式事务
+     	enabled: true
+   	# 事务服务分组名,与naocs一致
+     	tx-service-group: my_test_tx_group
+   	# 是否启用数据源代理
+     	enable-auto-data-source-proxy: true
+   	# 事务服务配置
+     	service:
+       	vgroup-mapping:
+   		# 事务分组对应集群名称
+         	my_test_tx_group: default
+       	grouplist:
+   		# Seata-Server服务的IP地址与端口
+         		default: 192.168.1.150:8091
+       	enable-degrade: false
+       	disable-global-transaction: false
+   	# Nacos配置中心信息
+   	config:
+       	type: nacos
+       	nacos:
+             	namespace: public
+             	serverAddr: 192.168.1.150:8848
+             	group: SEATA_GROUP
+             	username: nacos
+             	password: nacos
+             	cluster: default
+   	# Nacos注册中心信息
+     	registry:
+       	type: nacos
+           nacos:
+    			application: seata-server
+    			server-addr: 192.168.1.150:8848
+    			group : SEATA_GROUP
+    			namespace: public
+    			username: nacos
+    			password: nacos
+    			cluster: default
+   
+   logging:
+     	level:
+       	io:
+         		seata: debug
    ```
 
- * 在微服务中开启全局事务:`@GlobalTransactional`
+ * 在微服务中开启全局事务:`@GlobalTransactional`,分支事务仍使用`@Transactional`
 
  * 每个微服务都必须导入registry.conf,file.conf,vgroup_mapping.{application.name}-fescar-server-group="default"
-
- * 启动:seata-server.sh -p 8090 -m file
 
 
 
@@ -198,6 +316,55 @@
 
 
 * 一个商城购买商品的接口,需要同时调用3个微服务
+
+* 第一步,在商城应用(TM)与三个服务(RM)启动后自动向事务协调者Seata-Server(TC)进行注册,让 TC 知晓各个组件的详细信息
+
+* 第二步,当会员购物时会执行 TM 的会员采购方法,当进入方法前 Seata 为 TM 提供的客户端会自动生效,向 TC 发出开启全局事务的请求
+
+* 第三步,会员采购方法开始执行,会依次执行 3 个服务的新增订单,增加积分,减少库存,在请求送往新的 RM 时,都会向 TC 注册新的分支事务.这些分支事务在处理时不但向业务表写入数据,还会自动向 Seata 强制要求的 UNDO_LOG 回滚日志表写入回滚 SQL 日志
+
+* 以新增订单事务为例:新增订单时执行的 SQL 语句如下
+
+  ```sql
+  INSERT INTO order(id,...) values(1001,...);
+  ```
+
+* 与之对应的,Seata 的回滚日志是基于 SQL 反向生成,新增订单创建了 1001 订单,那 Seata会对 SQL 进行解析生成反向的回滚 SQL 日志保存在 UNDO_LOG 表,如下所示
+
+  ```sql
+  DELETE FROM order WHERE id = 1001;
+  ```
+
+* 与之类似会员积分会生成加积分的业务 SQL 以及减积分的回滚 SQL
+
+  ```sql
+  -- 加积分
+  UPDATE FROM points SET point = 180 + 20 WHERE mid = 182;
+  -- UNDO_LOG表中的减积分SQL
+  UPDATE FROM points SET point = 200 - 20 WHERE mid = 182;
+  ```
+
+* 第四步,当 RM 的分支事务执行成功后,会自动向 TC 上报分支事务处理成功
+
+* 第五步,当会员采购方法正确执行,所有 RM 也向 TC 上报分支事务处理成功,在会员采购方法退出前,TM 内置的 Seata 客户端会向 TC 自动发起提交全局事务请求.TC 收到提交全局事务请求,向所有 RM 下达提交分支事务的命令,每一个 RM 在收到提交命令后,会删除之前保存在 UNDO_LOG 表中的回滚日志
+
+* 假设某个 RM 分支事务处理失败,此时 TM 便不再向 TC 发起提交全局事务,转而发送回滚全局事务,TC 收到后,通知所有之前已处理成功的 RM 执行回滚 SQL 将数据回滚
+
+* 比如 1001 订单在第三步减少库存时发现库存不足导致库存服务预处理失败,那全局回滚时第一步订单服务会自动执行删除 1001 订单的回滚 SQL
+
+  ```sql
+  DELETE FROM order WHERE id = 1001;
+  ```
+
+* 以及第二步积分服务会自动执行减少积分的回滚 SQL
+
+  ```sql
+  UPDATE FROM points SET point = 200 - 20 WHERE mid = 182;
+  ```
+
+* Seata AT模式就是通过执行反向 SQL 进行数据还原,当反向 SQL 执行后便自动从 UNDO_LOG 表中删除.在这个过程中,Seata 为了能做到无侵入的自动实现全局事务提交与回滚,在 TM端利用了类似Spring 声明式事务的设计,在进入 TM 方法前通知 TC 开启全局事务,在成功执行后自动提交全局事务,执行失败后进行全局回滚.同时在 RM 端也巧妙的采用了 SQL 解析技术自动生成了反向的回滚 SQL 来实现数据还原
+
+* 为什么 Seata 要生成反向 SQL,而不是利用数据库自带的排他锁机制处理呢?如果采用排它锁机制会导致数据资源被锁死,可能会产生大量的数据资源阻塞,进而存在应用崩溃的风险.而生成反向 SQL 的方案则是在预处理阶段事务便已提交,不会出现长时间数据资源锁定的情况,这样能有效提高并发量.但这样做也有弊端,在研究时发现 Seata 是工作在读未提交的隔离级别,高并发环境下容易产生脏读,幻读的情况
 
 
 
