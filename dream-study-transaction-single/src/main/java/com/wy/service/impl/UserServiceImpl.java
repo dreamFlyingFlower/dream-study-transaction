@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.wy.digest.DigestTool;
+import com.wy.mapper.UserMapper;
 import com.wy.service.UserService;
 
 /**
@@ -18,7 +20,7 @@ import com.wy.service.UserService;
  * @git {@link https://github.com/dreamFlyingFlower}
  */
 @Service
-@Transactional(propagation = Propagation.REQUIRED, readOnly = false, rollbackFor = Exception.class)
+//@Transactional(propagation = Propagation.REQUIRED, readOnly = false, rollbackFor = Exception.class)
 public class UserServiceImpl implements UserService {
 
 	@Autowired
@@ -26,28 +28,35 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	private TransactionTemplate transactionTemplate;
+	
+	@Autowired
+	private UserMapper userMapper;
 
+	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public void test01() {
-		// 若此时发生了异常,且异常被抛出,事务生效
+		// 当test01有事务:若此时发生了异常,且异常被抛出,不管test02上是否有事务,事务仍然生效,test01和test02都回滚
 		test02();
 		try {
-			// 若此时发生了异常,但是异常被捕获,事务失效
+			// 若此时发生了异常,但是异常被捕获,事务不生效
 			test02();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		// 若此时发生异常,由于是由this直接调用,不走AOP的动态代理,无法捕获异常,事务失效
+		// 当test01没有事务,test02有事务:若此时发生异常,由于是由this直接调用,不走AOP的动态代理,无法捕获异常,事务不生效
 		test02();
-		// 使用AopContext调用test02,此时若发生异常,可被AOP捕获,事务生效
+		// 当test01没有事务,test02有事务:使用AopContext调用test02,此时若发生异常,可被AOP捕获,事务生效
 		UserServiceImpl userServiceImpl = (UserServiceImpl) AopContext.currentProxy();
 		userServiceImpl.test02();
 		// 使用ApplicationContext获得代理对象,事务生效
 		UserServiceImpl userServiceImpl2 = applicationContext.getBean(UserServiceImpl.class);
 		userServiceImpl2.test02();
+		
+		userMapper.addTx(DigestTool.uuid());
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public String test02() {
 		return null;
 	}

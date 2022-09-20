@@ -2,8 +2,9 @@
 <configuration debug="true" scan="true" scanPeriod="30 seconds">
 	<!-- 通用参数 -->
 	<!--<include resource="org/springframework/boot/logging/logback/base.xml" /> -->
-	<springProperty scope="context" name="logLevel" source="logging.level" />
-	<springProperty scope="context" name="logPath" source="logging.path" />
+	<springProperty scope="context" name="logLevel" source="logging.level.root" />
+	<springProperty scope="context" name="logPath" source="logging.file.path" />
+	<springProperty scope="context" name="logFileName" source="spring.application.name"/>
 
 	<!-- 日志格式 -->
 	<appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
@@ -19,10 +20,10 @@
 	<!-- 日志文件输出，如果不定义按spring boot默认输出 -->
 	<appender name="dailyRollingFileAppender"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
-		<File>${logPath}/moria.log</File>
+		<File>${logPath}/${logFileName}.log</File>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<!-- daily rollover -->
-			<FileNamePattern>${logPath}/moria.%d{yyyy-MM-dd}.log</FileNamePattern>
+			<FileNamePattern>${logPath}/${logFileName}.%d{yyyy-MM-dd}.log</FileNamePattern>
 			<!-- 若每天滚动日志,保留多少天的日志 -->
 			<maxHistory>365</maxHistory>
 		</rollingPolicy>

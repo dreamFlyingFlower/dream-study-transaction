@@ -5,12 +5,10 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
-import org.springframework.stereotype.Component;
 
 import com.wy.model.User;
 
 @Mapper
-@Component
 public interface UserMapper {
 
 	@Update("update account_info set account_balance=account_balance+#{amount} where account_no=#{accountNo}")

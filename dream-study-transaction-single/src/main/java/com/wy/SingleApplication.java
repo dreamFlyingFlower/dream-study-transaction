@@ -6,14 +6,21 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.context.annotation.AutoProxyRegistrar;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.ProxyTransactionManagementConfiguration;
 import org.springframework.transaction.annotation.SpringTransactionAnnotationParser;
+import org.springframework.transaction.annotation.TransactionManagementConfigurationSelector;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.AbstractFallbackTransactionAttributeSource;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
@@ -63,7 +70,26 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * Spring事务动态代理原理:
  * 
  * <pre>
- * {@link Transactional}:定义代理植入点,标识方法需要被代理,同时携带事务管理需要的一些属性信息
+ * {@link AbstractApplicationContext#refresh()}:启动容器时刷新配置
+ * ->{@link AbstractApplicationContext#invokeBeanFactoryPostProcessors}:进行后置处理
+ * -->{@link TransactionManagementConfigurationSelector}:被后置处理方法调用
+ * 
+ * {@link TransactionAutoConfiguration}:事务自动配置
+ * {@link EnableTransactionManagement}:开启事务注解,由{@link TransactionAutoConfiguration}的自动配置开启
+ * {@link TransactionManagementConfigurationSelector}:由 EnableTransactionManagement 引入,注入事务相关类
+ * ->{@link AutoProxyRegistrar}:后事务处理增强器,注入注解中包含mode和proxyTargetClass的相关类,包括 EnableTransactionManagement.
+ * 		最终将会给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 组件,利用后置处理器机制在对象创建以后,包装对象,
+ * 		返回一个代理对象(增强器),代理对象执行方法,利用拦截器链进行调用
+ * ->{@link ProxyTransactionManagementConfiguration}: 事务相关配置注入
+ * -->{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 Advisor
+ * -->{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
+ * -->{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
+ * {@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
+ * 		在目标方法执行的时候,会getAdvisors()获取拦截器链,并执行拦截器链,当只有事务拦截器时:
+ * 		1.先获取事务相关的属性
+ * 		2.再获取PlatformTransactionManager,如果没有指定任何Transactionmanger,最终会从容器中按照类型获取一个PlatformTransactionManager
+ * 		3.执行目标方法:如果正常,利用事务管理器提交事务;如果异常,获取到事务管理器,利用事务管理回滚操作
+ * {@link Transactional}:定义代理植入点,标识方法需要被代理,同时携带事务管理需要的一些属性信息,只对public方法有效
  * {@link TransactionDefinition}:定义事务的隔离级别,超时信息,传播行为,是否只读等信息
  * {@link TransactionStatus}:事务状态,根据事务定义信息进行事务管理,记录事务管理中的事务状态的对象
  * {@link AnnotationAwareAspectJAutoProxyCreator#postProcessAfterInitialization}:{@link BeanPostProcessor}的实现类,
@@ -91,7 +117,9 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * ->{@link TransactionAspectSupport#createTransactionIfNecessary}:开启事务
  * ->{@link TransactionAspectSupport#completeTransactionAfterThrowing}:回滚事务
  * ->{@link TransactionAspectSupport#commitTransactionAfterReturning}:提交事务
- * {@link PlatformTransactionManager},{@link AbstractPlatformTransactionManager}:Spring用于管理事务的真正对象
+ * {@link PlatformTransactionManager}:Spring事务管理规范接口,由 TransactionAutoConfiguration 引入
+ * ->{@link AbstractPlatformTransactionManager}:Spring用于管理事务的抽象类,实现基本的事务管理,但真正操作事务的在其子类中
+ * -->{@link DataSourceTransactionManager}:实现真正的事务管理,包括事务开始,提交,暂停,回滚等
  * {@link AbstractFallbackTransactionAttributeSource#getTransactionAttribute()}:事务回滚主要方法,非public不回滚
  * </pre>
  * 
@@ -103,7 +131,7 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * 2.开启了多个数据库的事务
  * </pre>
  * 
- * {@link Transactional}:Spring AOP检查事务的注解标志
+ * {@link Transactional}:Spring AOP检查事务的注解标志,只对public方法有效
  * 
  * <pre>
  * {@link Transactional#value()}:事务管理类,根据环境使用{@link PlatformTransactionManager}或{@link ReactiveTransactionManager}
