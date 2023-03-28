@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.context.annotation.AdviceModeImportSelector;
 import org.springframework.context.annotation.AutoProxyRegistrar;
 import org.springframework.context.annotation.ConfigurationClassPostProcessor;
 import org.springframework.context.annotation.DeferredImportSelector;
@@ -85,16 +86,17 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * 		该类由{@link EnableAutoConfiguration}引入,加载所有自动配置类
  * 9.{@link TransactionAutoConfiguration}:被8处理,自动配置
  * 10.{@link EnableTransactionManagement}:上一步引入,设置事务使用代理或切面,默认是PROXY代理
- * 11.{@link TransactionManagementConfigurationSelector}:上一步引入,根据事务引入类型引入注册指定类
- * ->11.1.{@link AutoProxyRegistrar}:事务处理增强器,优先级比AOP的AnnotationAwareAspectJAutoProxyCreator低.
+ * 11.{@link AdviceModeImportSelector#selectImports}:由7处理,根据事务引入类型引入注册指定类
+ * 12.{@link TransactionManagementConfigurationSelector#selectImports}:非ImportSelector中接口,间接由AdviceModeImportSelector导入
+ * 13.{@link AutoProxyRegistrar#registerBeanDefinitions}:由7进行解析注入.事务处理增强器,优先级比AOP的AnnotationAwareAspectJAutoProxyCreator低.
  * 		根据最近的含有mode和proxyTargetClass注解注入这2个属性,此处最近的注解为EnableTransactionManagement.
  * 		最终将会给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 实例,利用后置处理器机制在对象创建以后,包装对象,
  * 		返回一个代理对象(增强器),代理对象执行方法,利用拦截器链进行调用
- * ->11.2.{@link ProxyTransactionManagementConfiguration}:处理事务配置
- * ->11.2.1.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 Advisor
- * ->11.2.2.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
- * ->11.2.3.{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
- * 12.{@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
+ * 14.{@link ProxyTransactionManagementConfiguration}:处理事务配置,由{@link AbstractApplicationContext#finishBeanFactoryInitialization}调用
+ * ->14.1.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 BeanFactoryTransactionAttributeSourceAdvisor
+ * ->14.2.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
+ * ->14.3.{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
+ * 13.{@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
  * </pre>
  * 
  * Spring事务动态代理原理--运行过程中调用事务:
@@ -119,10 +121,12 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * {@link AbstractFallbackTransactionAttributeSource#computeTransactionAttribute}:targetClass就是目标class
  * 	{@link SpringTransactionAnnotationParser#parseTransactionAnnotation}:分析方法是否被 Transactional 标注,
  * 		如果有,BeanFactoryTransactionAttributeSourceAdvisor适配当前bean,进行代理,并注入切入点
- * {@link #CglibAopProxy.DynamicAdvisedInterceptor#intercept}:AOP最终的代理对象的代理方法
+ * ->{@link #JdkDynamicAopProxy#invoke}:默认为JDK代理实现事务
  * 		this.advised.getInterceptorsAndDynamicInterceptionAdvice():该方法返回 TransactionInterceptor
- * 		new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed():
- * 			最终调用{@link TransactionInterceptor#invoke},并且把CglibMethodInvocation注入到invoke()
+ * 		new ReflectiveMethodInvocation().proceed():最终调用{@link TransactionInterceptor#invoke}
+ * ->{@link #CglibAopProxy.DynamicAdvisedInterceptor#intercept}:AOP最终的代理对象的代理方法
+ * 		this.advised.getInterceptorsAndDynamicInterceptionAdvice():该方法返回 TransactionInterceptor
+ * 		new CglibMethodInvocation().proceed():最终调用{@link TransactionInterceptor#invoke}
  * {@link TransactionInterceptor}:事务拦截器,实现了{@link MethodInterceptor},{@link Advice},在SpringBoot启动时注入
  * {@link TransactionInterceptor#invoke}:AOP切面最终调用的执行方法.
  * 		从调用链可以看到CglibMethodInvocation是包装了目标对象的方法调用的所有信息,因此,在该方法里面也可以调用目标方法,
