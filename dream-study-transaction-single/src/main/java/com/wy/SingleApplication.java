@@ -5,10 +5,14 @@ import org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProx
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.context.annotation.AutoProxyRegistrar;
+import org.springframework.context.annotation.ConfigurationClassPostProcessor;
+import org.springframework.context.annotation.DeferredImportSelector;
+import org.springframework.context.annotation.ImportSelector;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -67,28 +71,40 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * {@link TransactionDefinition#PROPAGATION_NESTED}:若存在事务,则在嵌套事务内执行;若没有事务,则与REQUIRED类似
  * </pre>
  * 
- * Spring事务动态代理原理:
+ * Spring事务动态代理原理--注册相关bean:
  * 
  * <pre>
- * {@link AbstractApplicationContext#refresh()}:启动容器时刷新配置
- * ->{@link AbstractApplicationContext#invokeBeanFactoryPostProcessors}:进行后置处理
- * -->{@link TransactionManagementConfigurationSelector}:被后置处理方法调用
- * 
- * {@link TransactionAutoConfiguration}:事务自动配置
- * {@link EnableTransactionManagement}:开启事务注解,由{@link TransactionAutoConfiguration}的自动配置开启
- * {@link TransactionManagementConfigurationSelector}:由 EnableTransactionManagement 引入,注入事务相关类
- * ->{@link AutoProxyRegistrar}:后事务处理增强器,注入注解中包含mode和proxyTargetClass的相关类,包括 EnableTransactionManagement.
- * 		最终将会给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 组件,利用后置处理器机制在对象创建以后,包装对象,
+ * 1.{@link AbstractApplicationContext#refresh()}:启动容器时刷新配置
+ * 2.{@link AbstractApplicationContext#invokeBeanFactoryPostProcessors}:进行后置处理
+ * 3.{@link ConfigurationClassPostProcessor#postProcessBeanDefinitionRegistry()}:注册beanDefinition
+ * 4.{@link ConfigurationClassPostProcessor#processConfigBeanDefinitions()}:注册beanDefinition
+ * 5.{@link #ConfigurationClassParser#parse()}:解析扫描启动类以及自动配置类
+ * 6.{@link #ConfigurationClassParser#doProcessConfigurationClass()}:解析启动类以及自动配置类,加载@Bean,@Import等相关注解
+ * 7.{@link #ConfigurationClassParser#processImports()}:解析自动配置类以及{@link ImportSelector},{@link DeferredImportSelector}
+ * 8.{@link #ConfigurationClassParser$DeferredImportSelectorHandler#handle()}:解析AutoConfigurationImportSelector,
+ * 		该类由{@link EnableAutoConfiguration}引入,加载所有自动配置类
+ * 9.{@link TransactionAutoConfiguration}:被8处理,自动配置
+ * 10.{@link EnableTransactionManagement}:上一步引入,设置事务使用代理或切面,默认是PROXY代理
+ * 11.{@link TransactionManagementConfigurationSelector}:上一步引入,根据事务引入类型引入注册指定类
+ * ->11.1.{@link AutoProxyRegistrar}:事务处理增强器,优先级比AOP的AnnotationAwareAspectJAutoProxyCreator低.
+ * 		根据最近的含有mode和proxyTargetClass注解注入这2个属性,此处最近的注解为EnableTransactionManagement.
+ * 		最终将会给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 实例,利用后置处理器机制在对象创建以后,包装对象,
  * 		返回一个代理对象(增强器),代理对象执行方法,利用拦截器链进行调用
- * ->{@link ProxyTransactionManagementConfiguration}: 事务相关配置注入
- * -->{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 Advisor
- * -->{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
- * -->{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
- * {@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
- * 		在目标方法执行的时候,会getAdvisors()获取拦截器链,并执行拦截器链,当只有事务拦截器时:
+ * ->11.2.{@link ProxyTransactionManagementConfiguration}:处理事务配置
+ * ->11.2.1.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 Advisor
+ * ->11.2.2.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
+ * ->11.2.3.{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
+ * 12.{@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
+ * </pre>
+ * 
+ * Spring事务动态代理原理--运行过程中调用事务:
+ * 
+ * <pre>
+ * 1.{@link TransactionInterceptor}:在目标方法执行的时候,会getAdvisors()获取拦截器链,并执行拦截器链,当只有事务拦截器时:
  * 		1.先获取事务相关的属性
- * 		2.再获取PlatformTransactionManager,如果没有指定任何Transactionmanger,最终会从容器中按照类型获取一个PlatformTransactionManager
+ * 		2.再获取PlatformTransactionManager,如果没有指定Transactionmanger,会从容器中按类型获取一个PlatformTransactionManager
  * 		3.执行目标方法:如果正常,利用事务管理器提交事务;如果异常,获取到事务管理器,利用事务管理回滚操作
+ * ->{@link TransactionAspectSupport#invokeWithinTransaction}:生成切面代理对象
  * {@link Transactional}:定义代理植入点,标识方法需要被代理,同时携带事务管理需要的一些属性信息,只对public方法有效
  * {@link TransactionDefinition}:定义事务的隔离级别,超时信息,传播行为,是否只读等信息
  * {@link TransactionStatus}:事务状态,根据事务定义信息进行事务管理,记录事务管理中的事务状态的对象
