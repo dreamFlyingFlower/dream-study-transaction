@@ -2,6 +2,7 @@ package com.wy;
 
 import org.aopalliance.aop.Advice;
 import org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator;
+import org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
@@ -96,6 +97,7 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * ->14.1.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 BeanFactoryTransactionAttributeSourceAdvisor
  * ->14.2.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
  * ->14.3.{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
+ * {@link BeanFactoryTransactionAttributeSourceAdvisor}:会被{@link AbstractAutoProxyCreator#getAdvicesAndAdvisorsForBean}获取
  * 13.{@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
  * </pre>
  * 
