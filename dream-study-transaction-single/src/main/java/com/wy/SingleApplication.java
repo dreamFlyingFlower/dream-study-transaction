@@ -22,17 +22,22 @@ import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.ProxyTransactionManagementConfiguration;
 import org.springframework.transaction.annotation.SpringTransactionAnnotationParser;
 import org.springframework.transaction.annotation.TransactionManagementConfigurationSelector;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.interceptor.AbstractFallbackTransactionAttributeSource;
 import org.springframework.transaction.interceptor.BeanFactoryTransactionAttributeSourceAdvisor;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import com.wy.listener.MyTransactionalEventLitener;
 
 /**
  * SpringBoot事务
@@ -73,6 +78,16 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * {@link TransactionDefinition#PROPAGATION_NESTED}:若存在事务,则在嵌套事务内执行;若没有事务,则与REQUIRED类似
  * </pre>
  * 
+ * Spring事务相关类
+ * 
+ * <pre>
+ * {@link TransactionalEventListener}:事务监听器注解,监听事务变化,记录日志等,见{@link MyTransactionalEventLitener}
+ * ->{@link TransactionalEventListener#phase()}:监听事务阶段
+ * ->{@link TransactionalEventListener#fallbackExecution()}:是否有事务的时候才执行监听,默认一直监听
+ * ->{@link TransactionalEventListener#condition()}:满足某个条件才执行监听
+ * {@link TransactionTemplate}:手动添加事务执行方法,需要注入
+ * </pre>
+ * 
  * Spring事务动态代理原理--注册相关bean:
  * 
  * <pre>
@@ -94,11 +109,13 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * 		最终将会给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 实例,利用后置处理器机制在对象创建以后,包装对象,
  * 		返回一个代理对象(增强器),代理对象执行方法,利用拦截器链进行调用
  * 14.{@link ProxyTransactionManagementConfiguration}:处理事务配置,由{@link AbstractApplicationContext#finishBeanFactoryInitialization}调用
- * ->14.1.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 BeanFactoryTransactionAttributeSourceAdvisor
- * ->14.2.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
- * ->14.3.{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
- * {@link BeanFactoryTransactionAttributeSourceAdvisor}:会被{@link AbstractAutoProxyCreator#getAdvicesAndAdvisorsForBean}获取
- * 13.{@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
+ * ->14.1->15.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 BeanFactoryTransactionAttributeSourceAdvisor
+ * ->14.2->16.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
+ * ->14.3->17.{@link ProxyTransactionManagementConfiguration#transactionInterceptor()}: 注入事务拦截器 {@link TransactionInterceptor}
+ * 15.{@link BeanFactoryTransactionAttributeSourceAdvisor}:会被{@link AbstractAutoProxyCreator#getAdvicesAndAdvisorsForBean}获取
+ * 16.{@link AnnotationTransactionAttributeSource}:保存事务相关信息
+ * ->16.1.{@link SpringTransactionAnnotationParser}:spring事务注解解析器,负责解析事务注解@Transactional
+ * 17.{@link TransactionInterceptor}:事务管理器,保存了事务属性信息,本身是一个 MethodInterceptor.
  * </pre>
  * 
  * Spring事务动态代理原理--运行过程中调用事务:
@@ -142,6 +159,8 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * {@link PlatformTransactionManager}:Spring事务管理规范接口,由 TransactionAutoConfiguration 引入
  * ->{@link AbstractPlatformTransactionManager}:Spring用于管理事务的抽象类,实现基本的事务管理,但真正操作事务的在其子类中
  * -->{@link DataSourceTransactionManager}:实现真正的事务管理,包括事务开始,提交,暂停,回滚等
+ * {@link AbstractFallbackTransactionAttributeSource#findTransactionAttribute()}:解析方法上是否有@Transactional,有才开启事务
+ * {@link SpringTransactionAnnotationParser#parseTransactionAnnotation}:解析事务注解,返回RuleBasedTransactionAttribute
  * {@link AbstractFallbackTransactionAttributeSource#getTransactionAttribute()}:事务回滚主要方法,非public不回滚
  * </pre>
  * 
@@ -151,14 +170,26 @@ import org.springframework.transaction.support.AbstractPlatformTransactionManage
  * 1.当A()和B()在同一个类中,且A()调用B()时.由于Spring事务采用动态代理,当A()使用了事务时,
  * 		若B()开启了新事务,此时A()中调用B()使用的是this.B(),而不是由Spring的动态代理调用的B(),此时B()的事务不生效
  * 2.开启了多个数据库的事务
+ * 3.添加事务的入口方法不是public,方法被final修饰
+ * 4.bean未被spring容器管理
+ * 5.多线程调用
+ * 6.错误的传播特性
+ * 7.自己捕获了异常
+ * 8.嵌套事务回滚多了
+ * 9.使用了多个数据库
  * </pre>
  * 
  * {@link Transactional}:Spring AOP检查事务的注解标志,只对public方法有效
  * 
  * <pre>
  * {@link Transactional#value()}:事务管理类,根据环境使用{@link PlatformTransactionManager}或{@link ReactiveTransactionManager}
+ * {@link Transactional#transactionManager()}:同value()
  * {@link Transactional#propagation()}:事务传播级别,默认是{@link Propagation.REQUIRED}
  * {@link Transactional#isolation()}:事务隔离级别,默认使用数据库默认级别
+ * {@link Transactional#timeout()}:事务超时时间,默认-1,不超时
+ * {@link Transactional#readOnly()}:指定事务是否只读,默认false,可读可写
+ * {@link Transactional#rollbackFor()}:通过指定异常类的字节码,限定事务在特定情况下回滚
+ * {@link Transactional#noRollbackFor()}:通过指定异常类的字节码,限定事务在特定情况下不回滚
  * </pre>
  * 
  * @author 飞花梦影
