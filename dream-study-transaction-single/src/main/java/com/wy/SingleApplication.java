@@ -4,7 +4,9 @@ import org.aopalliance.aop.Advice;
 import org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator;
 import org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator;
 import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,8 +17,11 @@ import org.springframework.context.annotation.AutoProxyRegistrar;
 import org.springframework.context.annotation.ConfigurationClassPostProcessor;
 import org.springframework.context.annotation.DeferredImportSelector;
 import org.springframework.context.annotation.ImportSelector;
+import org.springframework.context.event.EventListenerMethodProcessor;
 import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.jca.cci.connection.TransactionAwareConnectionFactoryProxy;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -81,11 +86,21 @@ import com.wy.listener.MyTransactionalEventLitener;
  * Spring事务相关类
  * 
  * <pre>
- * {@link TransactionalEventListener}:事务监听器注解,监听事务变化,记录日志等,见{@link MyTransactionalEventLitener}
+ * {@link TransactionalEventListener}:事务监听器注解,监听事务变化,记录日志等,见{@link MyTransactionalEventLitener}.
  * ->{@link TransactionalEventListener#phase()}:监听事务阶段
  * ->{@link TransactionalEventListener#fallbackExecution()}:是否有事务的时候才执行监听,默认一直监听
  * ->{@link TransactionalEventListener#condition()}:满足某个条件才执行监听
+ * ->调用流程:{@link AbstractApplicationContext#finishBeanFactoryInitialization}
+ * -->{@link DefaultListableBeanFactory#preInstantiateSingletons}
+ * -->{@link SmartInitializingSingleton#afterSingletonsInstantiated}: 处理剩余的单例bean,此处有多种处理程序,包括监听(listener)
+ * -->{@link EventListenerMethodProcessor#afterSingletonsInstantiated()}:负责监听的单例处理
+ * -->{@link EventListenerMethodProcessor#processBean()}:只处理带有@EventListener注解的bean
  * {@link TransactionTemplate}:手动添加事务执行方法,需要注入
+ * {@link TransactionAwareConnectionFactoryProxy}:Spring提供的一个数据源代理类,继承了{@link DelegatingDataSource}.
+ * 		DelegatingDataSource 实现了javax.sgl.Datasource,通过装饰者模式,把原始DataSource中不希望用户使用的方法又封装了一层.
+ * 		因为数据连接泄露的问题,可以使用 JdbcTemplate 或者 TransactionAwareDataSourceProxy.
+ * 		TransactionAwareDataSourceProxy会对数据源进行代理,数据源对象就有了事务上下文感知的能力.
+ * 		这2者核心都是Datasourceutils.
  * </pre>
  * 
  * Spring事务动态代理原理--注册相关bean:
