@@ -3,6 +3,7 @@ package com.wy;
 import org.aopalliance.aop.Advice;
 import org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator;
 import org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator;
+import org.springframework.aop.framework.autoproxy.InfrastructureAdvisorAutoProxyCreator;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -122,7 +123,8 @@ import com.wy.listener.MyTransactionalEventLitener;
  * 13.{@link AutoProxyRegistrar#registerBeanDefinitions}:由7进行解析注入.事务处理增强器,优先级比AOP的AnnotationAwareAspectJAutoProxyCreator低.
  * 		根据最近的含有mode和proxyTargetClass注解注入这2个属性,此处最近的注解为EnableTransactionManagement.
  * 		最终将会给容器中注册一个 InfrastructureAdvisorAutoProxyCreator 实例,利用后置处理器机制在对象创建以后,包装对象,
- * 		返回一个代理对象(增强器),代理对象执行方法,利用拦截器链进行调用
+ * 		返回一个代理对象(增强器),代理对象执行方法,利用拦截器链进行调用.
+ * 		{@link InfrastructureAdvisorAutoProxyCreator}功能和{@link AnnotationAwareAspectJAutoProxyCreator}类似
  * 14.{@link ProxyTransactionManagementConfiguration}:处理事务配置,由{@link AbstractApplicationContext#finishBeanFactoryInitialization}调用
  * ->14.1->15.{@link ProxyTransactionManagementConfiguration#transactionAdvisor()}: 注册事务增强器 BeanFactoryTransactionAttributeSourceAdvisor
  * ->14.2->16.{@link ProxyTransactionManagementConfiguration#transactionAttributeSource()}: 注入事务相关属性,如传播方式等
