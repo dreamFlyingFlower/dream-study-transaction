@@ -5,9 +5,9 @@ import io.seata.rm.tcc.api.LocalTCC;
 import io.seata.rm.tcc.api.TwoPhaseBusinessAction;
 
 /**
- * 使用Seata的TCC模式进行分布式事务
+ * 使用Seata的TCC模式进行分布式事务.当前接口可不需要,默认是XA模式
  * 
- * {@link LocalTCC}:指定当前接口事务使用TCC模式
+ * {@link LocalTCC}:指定当前接口事务使用TCC模式,需要和TwoPhaseBusinessAction配置和使用
  * {@link TwoPhaseBusinessAction}:指定TCC事务的调用的微服务名,提交的业务逻辑,回滚的业务逻辑
  * 
  * @author 飞花梦影
